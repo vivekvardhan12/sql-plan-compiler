@@ -1,0 +1,22 @@
+{
+  "tables": {
+    "employees": {
+      "columns": {
+        "id": "INT",
+        "name": "TEXT",
+        "age": "INT",
+        "salary": "INT",
+        "dept_id": "INT"
+      },
+      "row_count": 1000
+    },
+    "departments": {
+      "columns": {
+        "id": "INT",
+        "dept_name": "TEXT",
+        "location": "TEXT"
+      },
+      "row_count": 10
+    }
+  }
+}

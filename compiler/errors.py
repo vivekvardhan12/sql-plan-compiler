@@ -92,3 +92,14 @@ class SemanticError(CompilerError):
     """Phase 3: raised when the query is grammatically correct but meaningless (e.g. unknown column)."""
 
     phase = "Semantic"
+
+
+class SchemaError(CompilerError):
+    """
+    Raised when the schema file itself (data/schema.json) is missing or invalid.
+
+    This is a configuration problem, not a problem with the user's query,
+    so it has its own class and usually no line/column.
+    """
+
+    phase = "Schema"
