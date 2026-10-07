@@ -7,8 +7,9 @@
 __pycache__/
 *.py[cod]
 
-# pytest's cache of previous test runs (local only).
+# pytest: cache of previous runs and temporary test folders (local only).
 .pytest_cache/
+.pytest_tmp/
 
 # Virtual environments, in case you ever use venv instead of conda.
 venv/
