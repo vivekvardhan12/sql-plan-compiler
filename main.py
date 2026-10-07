@@ -20,6 +20,9 @@ Usage examples (run from the project root):
     python main.py --show-schema
         Print the tables and columns the compiler knows about.
 
+    python main.py --version
+        Print the version number.
+
     python main.py --help
         Full list of options.
 
@@ -33,6 +36,7 @@ import argparse
 import sys
 from pathlib import Path
 
+from compiler import __version__
 from compiler.ast_nodes import format_ast
 from compiler.errors import SchemaError
 from compiler.lexer import format_token_table
@@ -281,6 +285,11 @@ def build_argument_parser() -> argparse.ArgumentParser:
         "--show-schema",
         action="store_true",
         help="print the tables and columns in the schema, then exit",
+    )
+    parser.add_argument(
+        "--version",
+        action="version",   # argparse prints the version string and exits with code 0
+        version=f"%(prog)s {__version__}",
     )
     return parser
 

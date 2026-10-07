@@ -1,0 +1,13 @@
+# requirements.txt
+# ================
+# Python packages this project needs. Install them with:
+#     pip install -r requirements.txt
+#
+# The compiler itself uses ONLY the Python standard library (no packages).
+# The single dependency below is for running the automated tests.
+#
+# ">=8.0,<10" means: any version from 8.0 up to (but not including) 10.
+# This allows bug-fix and feature updates, but blocks a future major
+# version that might change behaviour.
+
+pytest>=8.0,<10

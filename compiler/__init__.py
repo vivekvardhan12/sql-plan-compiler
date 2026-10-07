@@ -16,3 +16,8 @@ which lets other files write imports like:
 
     from compiler.lexer import tokenize
 """
+
+# The project's version number, following Semantic Versioning (MAJOR.MINOR.PATCH):
+#   MAJOR changes when existing usage breaks, MINOR when features are added,
+#   PATCH for bug fixes. Shown by `python main.py --version`.
+__version__ = "1.0.0"

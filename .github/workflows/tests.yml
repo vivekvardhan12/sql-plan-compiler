@@ -1,0 +1,67 @@
+# .github/workflows/tests.yml
+# ===========================
+# Continuous Integration (CI): every time code is pushed to GitHub, or a pull
+# request is opened, GitHub starts fresh virtual machines, installs Python,
+# and runs all the checks below. A green tick on the repository means
+# everything passed; a red cross means something broke.
+
+name: Tests
+
+# WHEN the workflow runs.
+on:
+  push:
+    branches: [main]          # every push to the main branch
+  pull_request:
+    branches: [main]          # every pull request that targets main
+  workflow_dispatch:          # adds a "Run workflow" button on the Actions tab
+
+# Least privilege: this workflow only needs to READ the code.
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Python ${{ matrix.python-version }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+
+    # A MATRIX runs the same job once for every combination below:
+    # 2 operating systems x 4 Python versions = 8 parallel jobs.
+    strategy:
+      fail-fast: false        # keep running the other jobs even if one fails
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ["3.10", "3.12", "3.13", "3.14"]
+
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v6
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip          # reuse downloaded packages between runs (faster)
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Run the test suite
+        run: python -m pytest -v
+
+      - name: Compile every example query (smoke test)
+        run: python main.py --file examples/queries.sql --show physical
+
+      - name: Check that every broken example query is rejected
+        shell: bash           # same script works on Linux and Windows runners
+        run: |
+          set +e              # don't stop the script when the next command "fails"
+          python main.py --file examples/errors.sql --show tokens
+          status=$?
+          set -e
+          if [ "$status" -ne 1 ]; then
+            echo "Expected exit code 1 (compile errors), got $status"
+            exit 1
+          fi
+          echo "All broken queries were rejected, as expected."

@@ -194,6 +194,14 @@ def test_bad_schema_path(capsys):
     assert "Schema file not found" in capsys.readouterr().err
 
 
+def test_version_flag(capsys):
+    # argparse's "version" action prints the version and exits with code 0.
+    with pytest.raises(SystemExit) as exit_info:
+        main.main(["--version"])
+    assert exit_info.value.code == 0
+    assert "1.0.0" in capsys.readouterr().out
+
+
 def test_show_schema(capsys):
     assert main.main(["--show-schema"]) == main.EXIT_OK
     output = capsys.readouterr().out
