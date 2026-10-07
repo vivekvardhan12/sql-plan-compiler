@@ -12,8 +12,6 @@ SQL text ──► Tokens ──► AST ──► Validated AST ──► Logica
            Phase 1    Phase 2     Phase 3         Phase 4          Phase 5           Phase 6
 ```
 
-> Replace `vivekvardhan12` in the badge links above with your GitHub vivekvardhan12.
-
 ---
 
 ## Table of Contents
@@ -70,27 +68,27 @@ it produces, phase by phase, the tokens, the syntax tree, the validated tree, th
 
 ## Tech Stack
 
-| Component | Choice | Why |
-|---|---|---|
-| Language | Python 3.10+ | Readable, fast to write, strong standard library |
+| Component      | Choice                           | Why                                                        |
+| -------------- | -------------------------------- | ---------------------------------------------------------- |
+| Language       | Python 3.10+                     | Readable, fast to write, strong standard library           |
 | Lexer / Parser | Hand-written (recursive descent) | Shows every compiler phase explicitly; best error messages |
-| Schema storage | JSON file | Human-editable, no database server needed |
-| CLI | `argparse` (standard library) | Option parsing, validation and `--help` for free |
-| Testing | `pytest` | Concise tests, fixtures, parametrization |
-| CI | GitHub Actions | Runs the test suite automatically on every push |
+| Schema storage | JSON file                        | Human-editable, no database server needed                  |
+| CLI            | `argparse` (standard library)    | Option parsing, validation and `--help` for free           |
+| Testing        | `pytest`                         | Concise tests, fixtures, parametrization                   |
+| CI             | GitHub Actions                   | Runs the test suite automatically on every push            |
 
 ## Architecture
 
 Each phase is a separate module with one job. Each takes the previous phase's output as input, so they can be developed, tested and explained independently.
 
-| Phase | Module | Input → Output | Compiler-theory concept |
-|---|---|---|---|
-| 1 | `lexer.py` | SQL text → tokens | Lexical analysis, maximal munch, finite automata |
-| 2 | `parser.py` | tokens → AST | Recursive descent (LL(1)), precedence, left-recursion elimination |
-| 3 | `semantic.py` | AST → resolved AST | Symbol table, scope, name resolution, static type checking |
-| 4 | `logical_plan.py` | resolved AST → logical plan | Intermediate representation (relational algebra) |
-| 5 | `optimizer.py` | logical plan → optimized plan | Constant folding, equivalence-preserving rewrites |
-| 6 | `physical_plan.py` | optimized plan → execution plan | Code generation, cost-based instruction selection |
+| Phase | Module             | Input → Output                  | Compiler-theory concept                                           |
+| ----- | ------------------ | ------------------------------- | ----------------------------------------------------------------- |
+| 1     | `lexer.py`         | SQL text → tokens               | Lexical analysis, maximal munch, finite automata                  |
+| 2     | `parser.py`        | tokens → AST                    | Recursive descent (LL(1)), precedence, left-recursion elimination |
+| 3     | `semantic.py`      | AST → resolved AST              | Symbol table, scope, name resolution, static type checking        |
+| 4     | `logical_plan.py`  | resolved AST → logical plan     | Intermediate representation (relational algebra)                  |
+| 5     | `optimizer.py`     | logical plan → optimized plan   | Constant folding, equivalence-preserving rewrites                 |
+| 6     | `physical_plan.py` | optimized plan → execution plan | Code generation, cost-based instruction selection                 |
 
 Supporting modules:
 
@@ -300,7 +298,13 @@ The tables the compiler knows about live in **`data/schema.json`**:
 {
   "tables": {
     "employees": {
-      "columns": { "id": "INT", "name": "TEXT", "age": "INT", "salary": "INT", "dept_id": "INT" },
+      "columns": {
+        "id": "INT",
+        "name": "TEXT",
+        "age": "INT",
+        "salary": "INT",
+        "dept_id": "INT"
+      },
       "row_count": 1000
     },
     "departments": {
@@ -326,15 +330,15 @@ pytest tests/test_optimizer.py -v    # one module's tests
 pytest -k pushdown                   # tests whose name contains "pushdown"
 ```
 
-| Test file | Covers |
-|---|---|
-| `test_lexer.py` | tokens, positions, comments, lexical errors |
-| `test_parser.py` | grammar, precedence, associativity, syntax errors |
-| `test_semantic.py` | schema validation, name resolution, scope, types |
-| `test_logical_plan.py` | plan shapes, relational algebra output |
-| `test_optimizer.py` | constant folding, pushdown legality, filter merging |
-| `test_physical_plan.py` | selectivity, row estimates, costs, join choice |
-| `test_cli.py` | full pipeline, every CLI mode, exit codes, example files |
+| Test file               | Covers                                                   |
+| ----------------------- | -------------------------------------------------------- |
+| `test_lexer.py`         | tokens, positions, comments, lexical errors              |
+| `test_parser.py`        | grammar, precedence, associativity, syntax errors        |
+| `test_semantic.py`      | schema validation, name resolution, scope, types         |
+| `test_logical_plan.py`  | plan shapes, relational algebra output                   |
+| `test_optimizer.py`     | constant folding, pushdown legality, filter merging      |
+| `test_physical_plan.py` | selectivity, row estimates, costs, join choice           |
+| `test_cli.py`           | full pipeline, every CLI mode, exit codes, example files |
 
 ## Continuous Integration
 
@@ -348,15 +352,15 @@ Results appear on the repository's **Actions** tab and as the badge at the top o
 
 ## Troubleshooting
 
-| Problem | Cause | Fix |
-|---|---|---|
-| `ModuleNotFoundError: No module named 'compiler'` | Running a phase file directly (`python compiler/lexer.py`) or from the wrong folder | Run from the project root, using `python -m compiler.lexer` or `python main.py` |
-| `PermissionError: [WinError 5] ... pytest-of-<user>` | Windows denied access to pytest's folder in `%TEMP%` | Already handled: `pytest.ini` sets `--basetemp=.pytest_tmp`. Make sure you have the latest `pytest.ini` |
-| Tree lines or π σ ⋈ show as `?` or garbage | Terminal not using UTF-8 | `main.py` switches to UTF-8 automatically; for `python -m compiler.*` demos run `set PYTHONUTF8=1` (Windows) first |
-| `pytest` not found | Environment not activated | `conda activate sqlcompiler` (or activate your venv), then `pip install -r requirements.txt` |
-| `Double quotes are not supported` | Used `"Sales"` inside the SQL | SQL strings use single quotes: `'Sales'` |
-| Query cut off on Windows | Inner and outer quotes clash | Outer double quotes, inner single quotes |
-| `Column 'id' is ambiguous` | Both joined tables have an `id` column | Qualify it: `employees.id` or `departments.id` |
+| Problem                                              | Cause                                                                               | Fix                                                                                                                |
+| ---------------------------------------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `ModuleNotFoundError: No module named 'compiler'`    | Running a phase file directly (`python compiler/lexer.py`) or from the wrong folder | Run from the project root, using `python -m compiler.lexer` or `python main.py`                                    |
+| `PermissionError: [WinError 5] ... pytest-of-<user>` | Windows denied access to pytest's folder in `%TEMP%`                                | Already handled: `pytest.ini` sets `--basetemp=.pytest_tmp`. Make sure you have the latest `pytest.ini`            |
+| Tree lines or π σ ⋈ show as `?` or garbage           | Terminal not using UTF-8                                                            | `main.py` switches to UTF-8 automatically; for `python -m compiler.*` demos run `set PYTHONUTF8=1` (Windows) first |
+| `pytest` not found                                   | Environment not activated                                                           | `conda activate sqlcompiler` (or activate your venv), then `pip install -r requirements.txt`                       |
+| `Double quotes are not supported`                    | Used `"Sales"` inside the SQL                                                       | SQL strings use single quotes: `'Sales'`                                                                           |
+| Query cut off on Windows                             | Inner and outer quotes clash                                                        | Outer double quotes, inner single quotes                                                                           |
+| `Column 'id' is ambiguous`                           | Both joined tables have an `id` column                                              | Qualify it: `employees.id` or `departments.id`                                                                     |
 
 ## Limitations and Future Work
 
@@ -388,7 +392,7 @@ Released under the [MIT License](LICENSE).
 
 ## Acknowledgements
 
-- Aho, Lam, Sethi & Ullman, *Compilers: Principles, Techniques, and Tools* (the "Dragon Book"), for the phase structure.
-- Silberschatz, Korth & Sudarshan, *Database System Concepts*, for relational algebra and query processing.
-- Selinger et al., *Access Path Selection in a Relational Database Management System* (1979, IBM System R), for the default selectivity estimates.
+- Aho, Lam, Sethi & Ullman, _Compilers: Principles, Techniques, and Tools_ (the "Dragon Book"), for the phase structure.
+- Silberschatz, Korth & Sudarshan, _Database System Concepts_, for relational algebra and query processing.
+- Selinger et al., _Access Path Selection in a Relational Database Management System_ (1979, IBM System R), for the default selectivity estimates.
 - PostgreSQL's `EXPLAIN` output, which inspired the execution-plan format.
