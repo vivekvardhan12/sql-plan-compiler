@@ -1,0 +1,706 @@
+════════════════════════════════════════════════════════════════════════
+ Query 1 of 8  (queries.sql)
+════════════════════════════════════════════════════════════════════════
+Query:
+  -- 1. Simplest query: read a whole table
+  SELECT * FROM employees
+
+[Phase 1] Lexical Analysis: 5 tokens
+────────────────────────────────────────────────────────────────────────
+  #  TYPE            LEXEME         VALUE          LINE:COL
+-----------------------------------------------------------
+  1  SELECT          SELECT         -              2:1
+  2  STAR            *              -              2:8
+  3  FROM            FROM           -              2:10
+  4  IDENTIFIER      employees      'employees'    2:15
+  5  EOF                            -              2:24
+
+[Phase 2] Syntax Analysis: Abstract Syntax Tree
+────────────────────────────────────────────────────────────────────────
+SelectQuery
+├── SELECT
+│   └── Column: *
+└── FROM
+    └── Table: employees
+
+[Phase 3] Semantic Analysis: passed ✔
+────────────────────────────────────────────────────────────────────────
+All tables and columns exist and every comparison is type-correct.
+Resolved AST (each column now carries its table):
+
+SelectQuery
+├── SELECT
+│   └── Column: *
+└── FROM
+    └── Table: employees
+
+[Phase 4] Intermediate Code: Logical Plan (relational algebra)
+────────────────────────────────────────────────────────────────────────
+π Project: *
+└── Scan: employees
+
+Relational algebra:
+  π[*](employees)
+
+[Phase 5] Optimization: 0 rule(s) applied
+────────────────────────────────────────────────────────────────────────
+π Project: *
+└── Scan: employees
+
+Rules applied:
+  None: no rule could improve this plan.
+
+[Phase 6] Code Generation: Execution Plan (read bottom-up)
+────────────────────────────────────────────────────────────────────────
+Project: *  (rows=1,000 cost=1,000)
+└── Seq Scan on employees  (rows=1,000 cost=1,000)
+
+Estimated total cost: 2,000  (without optimization: 2,000)
+
+✔ Compiled successfully in 0.12 ms
+
+════════════════════════════════════════════════════════════════════════
+ Query 2 of 8  (queries.sql)
+════════════════════════════════════════════════════════════════════════
+Query:
+  -- 2. Choose columns and filter rows
+  SELECT name, salary FROM employees WHERE salary > 50000
+
+[Phase 1] Lexical Analysis: 11 tokens
+────────────────────────────────────────────────────────────────────────
+  #  TYPE            LEXEME         VALUE          LINE:COL
+-----------------------------------------------------------
+  1  SELECT          SELECT         -              2:1
+  2  IDENTIFIER      name           'name'         2:8
+  3  COMMA           ,              -              2:12
+  4  IDENTIFIER      salary         'salary'       2:14
+  5  FROM            FROM           -              2:21
+  6  IDENTIFIER      employees      'employees'    2:26
+  7  WHERE           WHERE          -              2:36
+  8  IDENTIFIER      salary         'salary'       2:42
+  9  GREATER         >              -              2:49
+ 10  NUMBER          50000          50000          2:51
+ 11  EOF                            -              2:56
+
+[Phase 2] Syntax Analysis: Abstract Syntax Tree
+────────────────────────────────────────────────────────────────────────
+SelectQuery
+├── SELECT
+│   ├── Column: name
+│   └── Column: salary
+├── FROM
+│   └── Table: employees
+└── WHERE
+    └── salary > 50000
+
+[Phase 3] Semantic Analysis: passed ✔
+────────────────────────────────────────────────────────────────────────
+All tables and columns exist and every comparison is type-correct.
+Resolved AST (each column now carries its table):
+
+SelectQuery
+├── SELECT
+│   ├── Column: employees.name
+│   └── Column: employees.salary
+├── FROM
+│   └── Table: employees
+└── WHERE
+    └── employees.salary > 50000
+
+[Phase 4] Intermediate Code: Logical Plan (relational algebra)
+────────────────────────────────────────────────────────────────────────
+π Project: employees.name, employees.salary
+└── σ Filter: employees.salary > 50000
+    └── Scan: employees
+
+Relational algebra:
+  π[employees.name, employees.salary](σ[employees.salary > 50000](employees))
+
+[Phase 5] Optimization: 0 rule(s) applied
+────────────────────────────────────────────────────────────────────────
+π Project: employees.name, employees.salary
+└── σ Filter: employees.salary > 50000
+    └── Scan: employees
+
+Rules applied:
+  None: no rule could improve this plan.
+
+[Phase 6] Code Generation: Execution Plan (read bottom-up)
+────────────────────────────────────────────────────────────────────────
+Project: employees.name, employees.salary  (rows=333 cost=333)
+└── Filter: employees.salary > 50000  (rows=333 cost=1,000)
+    └── Seq Scan on employees  (rows=1,000 cost=1,000)
+
+Estimated total cost: 2,333  (without optimization: 2,333)
+
+✔ Compiled successfully in 0.15 ms
+
+════════════════════════════════════════════════════════════════════════
+ Query 3 of 8  (queries.sql)
+════════════════════════════════════════════════════════════════════════
+Query:
+  -- 3. AND binds tighter than OR: read as  age < 25 OR (age > 55 AND salary > 80000)
+  SELECT name FROM employees WHERE age < 25 OR age > 55 AND salary > 80000
+
+[Phase 1] Lexical Analysis: 17 tokens
+────────────────────────────────────────────────────────────────────────
+  #  TYPE            LEXEME         VALUE          LINE:COL
+-----------------------------------------------------------
+  1  SELECT          SELECT         -              2:1
+  2  IDENTIFIER      name           'name'         2:8
+  3  FROM            FROM           -              2:13
+  4  IDENTIFIER      employees      'employees'    2:18
+  5  WHERE           WHERE          -              2:28
+  6  IDENTIFIER      age            'age'          2:34
+  7  LESS            <              -              2:38
+  8  NUMBER          25             25             2:40
+  9  OR              OR             -              2:43
+ 10  IDENTIFIER      age            'age'          2:46
+ 11  GREATER         >              -              2:50
+ 12  NUMBER          55             55             2:52
+ 13  AND             AND            -              2:55
+ 14  IDENTIFIER      salary         'salary'       2:59
+ 15  GREATER         >              -              2:66
+ 16  NUMBER          80000          80000          2:68
+ 17  EOF                            -              2:73
+
+[Phase 2] Syntax Analysis: Abstract Syntax Tree
+────────────────────────────────────────────────────────────────────────
+SelectQuery
+├── SELECT
+│   └── Column: name
+├── FROM
+│   └── Table: employees
+└── WHERE
+    └── OR
+        ├── age < 25
+        └── AND
+            ├── age > 55
+            └── salary > 80000
+
+[Phase 3] Semantic Analysis: passed ✔
+────────────────────────────────────────────────────────────────────────
+All tables and columns exist and every comparison is type-correct.
+Resolved AST (each column now carries its table):
+
+SelectQuery
+├── SELECT
+│   └── Column: employees.name
+├── FROM
+│   └── Table: employees
+└── WHERE
+    └── OR
+        ├── employees.age < 25
+        └── AND
+            ├── employees.age > 55
+            └── employees.salary > 80000
+
+[Phase 4] Intermediate Code: Logical Plan (relational algebra)
+────────────────────────────────────────────────────────────────────────
+π Project: employees.name
+└── σ Filter: employees.age < 25 OR (employees.age > 55 AND employees.salary > 80000)
+    └── Scan: employees
+
+Relational algebra:
+  π[employees.name](σ[employees.age < 25 OR (employees.age > 55 AND employees.salary > 80000)](employees))
+
+[Phase 5] Optimization: 0 rule(s) applied
+────────────────────────────────────────────────────────────────────────
+π Project: employees.name
+└── σ Filter: employees.age < 25 OR (employees.age > 55 AND employees.salary > 80000)
+    └── Scan: employees
+
+Rules applied:
+  None: no rule could improve this plan.
+
+[Phase 6] Code Generation: Execution Plan (read bottom-up)
+────────────────────────────────────────────────────────────────────────
+Project: employees.name  (rows=407 cost=407)
+└── Filter: employees.age < 25 OR (employees.age > 55 AND employees.salary > 80000)  (rows=407 cost=1,000)
+    └── Seq Scan on employees  (rows=1,000 cost=1,000)
+
+Estimated total cost: 2,407  (without optimization: 2,407)
+
+✔ Compiled successfully in 0.23 ms
+
+════════════════════════════════════════════════════════════════════════
+ Query 4 of 8  (queries.sql)
+════════════════════════════════════════════════════════════════════════
+Query:
+  -- 4. Sorting (the sort column does not have to be in the SELECT list)
+  SELECT name FROM employees ORDER BY age DESC
+
+[Phase 1] Lexical Analysis: 9 tokens
+────────────────────────────────────────────────────────────────────────
+  #  TYPE            LEXEME         VALUE          LINE:COL
+-----------------------------------------------------------
+  1  SELECT          SELECT         -              2:1
+  2  IDENTIFIER      name           'name'         2:8
+  3  FROM            FROM           -              2:13
+  4  IDENTIFIER      employees      'employees'    2:18
+  5  ORDER           ORDER          -              2:28
+  6  BY              BY             -              2:34
+  7  IDENTIFIER      age            'age'          2:37
+  8  DESC            DESC           -              2:41
+  9  EOF                            -              2:45
+
+[Phase 2] Syntax Analysis: Abstract Syntax Tree
+────────────────────────────────────────────────────────────────────────
+SelectQuery
+├── SELECT
+│   └── Column: name
+├── FROM
+│   └── Table: employees
+└── ORDER BY
+    └── age DESC
+
+[Phase 3] Semantic Analysis: passed ✔
+────────────────────────────────────────────────────────────────────────
+All tables and columns exist and every comparison is type-correct.
+Resolved AST (each column now carries its table):
+
+SelectQuery
+├── SELECT
+│   └── Column: employees.name
+├── FROM
+│   └── Table: employees
+└── ORDER BY
+    └── employees.age DESC
+
+[Phase 4] Intermediate Code: Logical Plan (relational algebra)
+────────────────────────────────────────────────────────────────────────
+π Project: employees.name
+└── τ Sort: employees.age DESC
+    └── Scan: employees
+
+Relational algebra:
+  π[employees.name](τ[employees.age DESC](employees))
+
+[Phase 5] Optimization: 0 rule(s) applied
+────────────────────────────────────────────────────────────────────────
+π Project: employees.name
+└── τ Sort: employees.age DESC
+    └── Scan: employees
+
+Rules applied:
+  None: no rule could improve this plan.
+
+[Phase 6] Code Generation: Execution Plan (read bottom-up)
+────────────────────────────────────────────────────────────────────────
+Project: employees.name  (rows=1,000 cost=1,000)
+└── Sort: employees.age DESC  (rows=1,000 cost=9,966)
+    └── Seq Scan on employees  (rows=1,000 cost=1,000)
+
+Estimated total cost: 11,966  (without optimization: 11,966)
+
+✔ Compiled successfully in 0.11 ms
+
+════════════════════════════════════════════════════════════════════════
+ Query 5 of 8  (queries.sql)
+════════════════════════════════════════════════════════════════════════
+Query:
+  -- 5. Join without filters: both inputs are large, so the planner picks a Hash Join
+  SELECT name, dept_name FROM employees JOIN departments ON dept_id = departments.id
+
+[Phase 1] Lexical Analysis: 15 tokens
+────────────────────────────────────────────────────────────────────────
+  #  TYPE            LEXEME         VALUE          LINE:COL
+-----------------------------------------------------------
+  1  SELECT          SELECT         -              2:1
+  2  IDENTIFIER      name           'name'         2:8
+  3  COMMA           ,              -              2:12
+  4  IDENTIFIER      dept_name      'dept_name'    2:14
+  5  FROM            FROM           -              2:24
+  6  IDENTIFIER      employees      'employees'    2:29
+  7  JOIN            JOIN           -              2:39
+  8  IDENTIFIER      departments    'departments'  2:44
+  9  ON              ON             -              2:56
+ 10  IDENTIFIER      dept_id        'dept_id'      2:59
+ 11  EQUAL           =              -              2:67
+ 12  IDENTIFIER      departments    'departments'  2:69
+ 13  DOT             .              -              2:80
+ 14  IDENTIFIER      id             'id'           2:81
+ 15  EOF                            -              2:83
+
+[Phase 2] Syntax Analysis: Abstract Syntax Tree
+────────────────────────────────────────────────────────────────────────
+SelectQuery
+├── SELECT
+│   ├── Column: name
+│   └── Column: dept_name
+├── FROM
+│   └── Table: employees
+└── JOIN
+    ├── Table: departments
+    └── ON: dept_id = departments.id
+
+[Phase 3] Semantic Analysis: passed ✔
+────────────────────────────────────────────────────────────────────────
+All tables and columns exist and every comparison is type-correct.
+Resolved AST (each column now carries its table):
+
+SelectQuery
+├── SELECT
+│   ├── Column: employees.name
+│   └── Column: departments.dept_name
+├── FROM
+│   └── Table: employees
+└── JOIN
+    ├── Table: departments
+    └── ON: employees.dept_id = departments.id
+
+[Phase 4] Intermediate Code: Logical Plan (relational algebra)
+────────────────────────────────────────────────────────────────────────
+π Project: employees.name, departments.dept_name
+└── ⋈ Join: employees.dept_id = departments.id
+    ├── Scan: employees
+    └── Scan: departments
+
+Relational algebra:
+  π[employees.name, departments.dept_name]((employees ⋈[employees.dept_id = departments.id] departments))
+
+[Phase 5] Optimization: 0 rule(s) applied
+────────────────────────────────────────────────────────────────────────
+π Project: employees.name, departments.dept_name
+└── ⋈ Join: employees.dept_id = departments.id
+    ├── Scan: employees
+    └── Scan: departments
+
+Rules applied:
+  None: no rule could improve this plan.
+
+[Phase 6] Code Generation: Execution Plan (read bottom-up)
+────────────────────────────────────────────────────────────────────────
+Project: employees.name, departments.dept_name  (rows=1,000 cost=1,000)
+└── Hash Join: employees.dept_id = departments.id (hash table on departments)  (rows=1,000 cost=1,020)
+    ├── Seq Scan on employees  (rows=1,000 cost=1,000)
+    └── Seq Scan on departments  (rows=10 cost=10)
+
+Planner decisions:
+  - Chose Hash Join (Nested Loop Join cost 10,000 vs Hash Join cost 1,020): avoids comparing every pair
+
+Estimated total cost: 3,030  (without optimization: 3,030)
+
+✔ Compiled successfully in 0.15 ms
+
+════════════════════════════════════════════════════════════════════════
+ Query 6 of 8  (queries.sql)
+════════════════════════════════════════════════════════════════════════
+Query:
+  -- 6. Join with filters on both tables: predicate pushdown, then a Nested Loop Join
+  SELECT name, dept_name FROM employees
+  JOIN departments ON dept_id = departments.id
+  WHERE salary > 50000 AND location = 'Hyderabad' AND age < 40
+  ORDER BY salary DESC
+
+[Phase 1] Lexical Analysis: 31 tokens
+────────────────────────────────────────────────────────────────────────
+  #  TYPE            LEXEME         VALUE          LINE:COL
+-----------------------------------------------------------
+  1  SELECT          SELECT         -              2:1
+  2  IDENTIFIER      name           'name'         2:8
+  3  COMMA           ,              -              2:12
+  4  IDENTIFIER      dept_name      'dept_name'    2:14
+  5  FROM            FROM           -              2:24
+  6  IDENTIFIER      employees      'employees'    2:29
+  7  JOIN            JOIN           -              3:1
+  8  IDENTIFIER      departments    'departments'  3:6
+  9  ON              ON             -              3:18
+ 10  IDENTIFIER      dept_id        'dept_id'      3:21
+ 11  EQUAL           =              -              3:29
+ 12  IDENTIFIER      departments    'departments'  3:31
+ 13  DOT             .              -              3:42
+ 14  IDENTIFIER      id             'id'           3:43
+ 15  WHERE           WHERE          -              4:1
+ 16  IDENTIFIER      salary         'salary'       4:7
+ 17  GREATER         >              -              4:14
+ 18  NUMBER          50000          50000          4:16
+ 19  AND             AND            -              4:22
+ 20  IDENTIFIER      location       'location'     4:26
+ 21  EQUAL           =              -              4:35
+ 22  STRING          'Hyderabad'    'Hyderabad'    4:37
+ 23  AND             AND            -              4:49
+ 24  IDENTIFIER      age            'age'          4:53
+ 25  LESS            <              -              4:57
+ 26  NUMBER          40             40             4:59
+ 27  ORDER           ORDER          -              5:1
+ 28  BY              BY             -              5:7
+ 29  IDENTIFIER      salary         'salary'       5:10
+ 30  DESC            DESC           -              5:17
+ 31  EOF                            -              5:21
+
+[Phase 2] Syntax Analysis: Abstract Syntax Tree
+────────────────────────────────────────────────────────────────────────
+SelectQuery
+├── SELECT
+│   ├── Column: name
+│   └── Column: dept_name
+├── FROM
+│   └── Table: employees
+├── JOIN
+│   ├── Table: departments
+│   └── ON: dept_id = departments.id
+├── WHERE
+│   └── AND
+│       ├── AND
+│       │   ├── salary > 50000
+│       │   └── location = 'Hyderabad'
+│       └── age < 40
+└── ORDER BY
+    └── salary DESC
+
+[Phase 3] Semantic Analysis: passed ✔
+────────────────────────────────────────────────────────────────────────
+All tables and columns exist and every comparison is type-correct.
+Resolved AST (each column now carries its table):
+
+SelectQuery
+├── SELECT
+│   ├── Column: employees.name
+│   └── Column: departments.dept_name
+├── FROM
+│   └── Table: employees
+├── JOIN
+│   ├── Table: departments
+│   └── ON: employees.dept_id = departments.id
+├── WHERE
+│   └── AND
+│       ├── AND
+│       │   ├── employees.salary > 50000
+│       │   └── departments.location = 'Hyderabad'
+│       └── employees.age < 40
+└── ORDER BY
+    └── employees.salary DESC
+
+[Phase 4] Intermediate Code: Logical Plan (relational algebra)
+────────────────────────────────────────────────────────────────────────
+π Project: employees.name, departments.dept_name
+└── τ Sort: employees.salary DESC
+    └── σ Filter: (employees.salary > 50000 AND departments.location = 'Hyderabad') AND employees.age < 40
+        └── ⋈ Join: employees.dept_id = departments.id
+            ├── Scan: employees
+            └── Scan: departments
+
+Relational algebra:
+  π[employees.name, departments.dept_name](τ[employees.salary DESC](σ[(employees.salary > 50000 AND departments.location = 'Hyderabad') AND employees.age < 40]((employees ⋈[employees.dept_id = departments.id] departments))))
+
+[Phase 5] Optimization: 3 rule(s) applied
+────────────────────────────────────────────────────────────────────────
+π Project: employees.name, departments.dept_name
+└── τ Sort: employees.salary DESC
+    └── ⋈ Join: employees.dept_id = departments.id
+        ├── σ Filter: employees.salary > 50000 AND employees.age < 40
+        │   └── Scan: employees
+        └── σ Filter: departments.location = 'Hyderabad'
+            └── Scan: departments
+
+Rules applied:
+  1. Predicate pushdown: moved "employees.salary > 50000" below the join, onto 'employees'
+  2. Predicate pushdown: moved "departments.location = 'Hyderabad'" below the join, onto 'departments'
+  3. Predicate pushdown: moved "employees.age < 40" below the join, onto 'employees'
+
+[Phase 6] Code Generation: Execution Plan (read bottom-up)
+────────────────────────────────────────────────────────────────────────
+Project: employees.name, departments.dept_name  (rows=11 cost=11)
+└── Sort: employees.salary DESC  (rows=11 cost=39)
+    └── Nested Loop Join: employees.dept_id = departments.id  (rows=11 cost=111)
+        ├── Filter: employees.salary > 50000 AND employees.age < 40  (rows=111 cost=1,000)
+        │   └── Seq Scan on employees  (rows=1,000 cost=1,000)
+        └── Filter: departments.location = 'Hyderabad'  (rows=1 cost=10)
+            └── Seq Scan on departments  (rows=10 cost=10)
+
+Planner decisions:
+  - Chose Nested Loop Join (Nested Loop Join cost 111 vs Hash Join cost 113): one input is small
+
+Estimated total cost: 2,181  (without optimization: 3,080)
+Optimization saved about 29% of the estimated work.
+
+✔ Compiled successfully in 0.30 ms
+
+════════════════════════════════════════════════════════════════════════
+ Query 7 of 8  (queries.sql)
+════════════════════════════════════════════════════════════════════════
+Query:
+  -- 7. An OR that uses both tables cannot be pushed below the join
+  SELECT name FROM employees JOIN departments ON dept_id = departments.id
+  WHERE age < 30 OR location = 'Pune'
+
+[Phase 1] Lexical Analysis: 21 tokens
+────────────────────────────────────────────────────────────────────────
+  #  TYPE            LEXEME         VALUE          LINE:COL
+-----------------------------------------------------------
+  1  SELECT          SELECT         -              2:1
+  2  IDENTIFIER      name           'name'         2:8
+  3  FROM            FROM           -              2:13
+  4  IDENTIFIER      employees      'employees'    2:18
+  5  JOIN            JOIN           -              2:28
+  6  IDENTIFIER      departments    'departments'  2:33
+  7  ON              ON             -              2:45
+  8  IDENTIFIER      dept_id        'dept_id'      2:48
+  9  EQUAL           =              -              2:56
+ 10  IDENTIFIER      departments    'departments'  2:58
+ 11  DOT             .              -              2:69
+ 12  IDENTIFIER      id             'id'           2:70
+ 13  WHERE           WHERE          -              3:1
+ 14  IDENTIFIER      age            'age'          3:7
+ 15  LESS            <              -              3:11
+ 16  NUMBER          30             30             3:13
+ 17  OR              OR             -              3:16
+ 18  IDENTIFIER      location       'location'     3:19
+ 19  EQUAL           =              -              3:28
+ 20  STRING          'Pune'         'Pune'         3:30
+ 21  EOF                            -              3:36
+
+[Phase 2] Syntax Analysis: Abstract Syntax Tree
+────────────────────────────────────────────────────────────────────────
+SelectQuery
+├── SELECT
+│   └── Column: name
+├── FROM
+│   └── Table: employees
+├── JOIN
+│   ├── Table: departments
+│   └── ON: dept_id = departments.id
+└── WHERE
+    └── OR
+        ├── age < 30
+        └── location = 'Pune'
+
+[Phase 3] Semantic Analysis: passed ✔
+────────────────────────────────────────────────────────────────────────
+All tables and columns exist and every comparison is type-correct.
+Resolved AST (each column now carries its table):
+
+SelectQuery
+├── SELECT
+│   └── Column: employees.name
+├── FROM
+│   └── Table: employees
+├── JOIN
+│   ├── Table: departments
+│   └── ON: employees.dept_id = departments.id
+└── WHERE
+    └── OR
+        ├── employees.age < 30
+        └── departments.location = 'Pune'
+
+[Phase 4] Intermediate Code: Logical Plan (relational algebra)
+────────────────────────────────────────────────────────────────────────
+π Project: employees.name
+└── σ Filter: employees.age < 30 OR departments.location = 'Pune'
+    └── ⋈ Join: employees.dept_id = departments.id
+        ├── Scan: employees
+        └── Scan: departments
+
+Relational algebra:
+  π[employees.name](σ[employees.age < 30 OR departments.location = 'Pune']((employees ⋈[employees.dept_id = departments.id] departments)))
+
+[Phase 5] Optimization: 1 rule(s) applied
+────────────────────────────────────────────────────────────────────────
+π Project: employees.name
+└── σ Filter: employees.age < 30 OR departments.location = 'Pune'
+    └── ⋈ Join: employees.dept_id = departments.id
+        ├── Scan: employees
+        └── Scan: departments
+
+Rules applied:
+  1. Kept "employees.age < 30 OR departments.location = 'Pune'" above the join, because it uses columns from both tables
+
+[Phase 6] Code Generation: Execution Plan (read bottom-up)
+────────────────────────────────────────────────────────────────────────
+Project: employees.name  (rows=400 cost=400)
+└── Filter: employees.age < 30 OR departments.location = 'Pune'  (rows=400 cost=1,000)
+    └── Hash Join: employees.dept_id = departments.id (hash table on departments)  (rows=1,000 cost=1,020)
+        ├── Seq Scan on employees  (rows=1,000 cost=1,000)
+        └── Seq Scan on departments  (rows=10 cost=10)
+
+Planner decisions:
+  - Chose Hash Join (Nested Loop Join cost 10,000 vs Hash Join cost 1,020): avoids comparing every pair
+
+Estimated total cost: 3,430  (without optimization: 3,430)
+
+✔ Compiled successfully in 0.18 ms
+
+════════════════════════════════════════════════════════════════════════
+ Query 8 of 8  (queries.sql)
+════════════════════════════════════════════════════════════════════════
+Query:
+  -- 8. Constant folding: '1 = 1' is decided at compile time and removed
+  SELECT name FROM employees WHERE age > 30 AND 1 = 1
+
+[Phase 1] Lexical Analysis: 13 tokens
+────────────────────────────────────────────────────────────────────────
+  #  TYPE            LEXEME         VALUE          LINE:COL
+-----------------------------------------------------------
+  1  SELECT          SELECT         -              2:1
+  2  IDENTIFIER      name           'name'         2:8
+  3  FROM            FROM           -              2:13
+  4  IDENTIFIER      employees      'employees'    2:18
+  5  WHERE           WHERE          -              2:28
+  6  IDENTIFIER      age            'age'          2:34
+  7  GREATER         >              -              2:38
+  8  NUMBER          30             30             2:40
+  9  AND             AND            -              2:43
+ 10  NUMBER          1              1              2:47
+ 11  EQUAL           =              -              2:49
+ 12  NUMBER          1              1              2:51
+ 13  EOF                            -              2:52
+
+[Phase 2] Syntax Analysis: Abstract Syntax Tree
+────────────────────────────────────────────────────────────────────────
+SelectQuery
+├── SELECT
+│   └── Column: name
+├── FROM
+│   └── Table: employees
+└── WHERE
+    └── AND
+        ├── age > 30
+        └── 1 = 1
+
+[Phase 3] Semantic Analysis: passed ✔
+────────────────────────────────────────────────────────────────────────
+All tables and columns exist and every comparison is type-correct.
+Resolved AST (each column now carries its table):
+
+SelectQuery
+├── SELECT
+│   └── Column: employees.name
+├── FROM
+│   └── Table: employees
+└── WHERE
+    └── AND
+        ├── employees.age > 30
+        └── 1 = 1
+
+[Phase 4] Intermediate Code: Logical Plan (relational algebra)
+────────────────────────────────────────────────────────────────────────
+π Project: employees.name
+└── σ Filter: employees.age > 30 AND 1 = 1
+    └── Scan: employees
+
+Relational algebra:
+  π[employees.name](σ[employees.age > 30 AND 1 = 1](employees))
+
+[Phase 5] Optimization: 1 rule(s) applied
+────────────────────────────────────────────────────────────────────────
+π Project: employees.name
+└── σ Filter: employees.age > 30
+    └── Scan: employees
+
+Rules applied:
+  1. Constant folding: simplified "employees.age > 30 AND 1 = 1" to "employees.age > 30"
+
+[Phase 6] Code Generation: Execution Plan (read bottom-up)
+────────────────────────────────────────────────────────────────────────
+Project: employees.name  (rows=333 cost=333)
+└── Filter: employees.age > 30  (rows=333 cost=1,000)
+    └── Seq Scan on employees  (rows=1,000 cost=1,000)
+
+Estimated total cost: 2,333  (without optimization: 2,333)
+
+✔ Compiled successfully in 0.13 ms
+
+════════════════════════════════════════════════════════════════════════
+ Summary: 8 queries, 8 compiled, 0 failed
+════════════════════════════════════════════════════════════════════════
